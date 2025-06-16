@@ -1,82 +1,265 @@
 -- AxionHazen | Forsaken ESP & Systems
 
-local StarterGui = game:GetService("StarterGui") StarterGui:SetCore("SendNotification", { Title = "Loading", Text = "be patient", Duration = 4 }) task.wait(3) StarterGui:SetCore("SendNotification", { Title = "...", Text = "Also, try B0bby hub", Duration = 4 }) task.wait(3) setclipboard("https://discord.gg/vUfCfg9t6Z") StarterGui:SetCore("SendNotification", { Title = "Discord", Text = "server link copied to clipboard", Duration = 5 })
-
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
-local Players = game:GetService("Players") local Workspace = game:GetService("Workspace") local RunService = game:GetService("RunService") local player = Players.LocalPlayer local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
 
-local antiGuestBlockEnabled = false local killerESPEnabled = false local survivorESPEnabled = false local tpwalkEnabled = false local tpwalkSpeed = 4 local invisEnabled = false local invisTrack = nil local savedTracks = {} local blockAnimationId = "72722244508749"
+local antiGuestBlockEnabled = false
+local tpWalkEnabled = false
+local tpWalkSpeed = 4
+local invisibilityEnabled = false
+local infStaminaEnabled = false
+local killerESPEnabled = false
+local survivorESPEnabled = false
 
--- TPWalk RunService.Heartbeat:Connect(function(dt) if tpwalkEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then local root = player.Character.HumanoidRootPart local cam = workspace.CurrentCamera local moveVec = Vector3.zero
+local blockAnimationId = "72722244508749"
+local invisAnimId = "rbxassetid://75804462760596"
 
-if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveVec += cam.CFrame.LookVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveVec -= cam.CFrame.LookVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveVec -= cam.CFrame.RightVector end
-    if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveVec += cam.CFrame.RightVector end
+-- WINDOW
+local Window = Rayfield:CreateWindow({
+    Name = "AxionHazen | Forsaken BETA VERSION",
+    LoadingTitle = "AxionHazenBETA | Loading",
+    LoadingSubtitle = "by kah.over",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = nil,
+        FileName = "AxionConfig"
+    },
+    Discord = { Enabled = false },
+    KeySystem = true,
+    KeySettings = {
+        Title = "AxionHazen | KeySystem",
+        Subtitle = "Enter the Key",
+        Note = "Join Discord for Key",
+        FileName = "AxionKey",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = "AxionNotBad", "key"
+    }
+})
 
-    moveVec = Vector3.new(moveVec.X, 0, moveVec.Z)
-    if moveVec.Magnitude > 0 then
-        local dir = moveVec.Unit
-        local newPos = root.Position + dir * tpwalkSpeed * dt
-        root.CFrame = CFrame.new(newPos, newPos + dir)
+-- MAIN TAB
+local MainTab = Window:CreateTab("Main", 4483362458)
+
+MainTab:CreateToggle({
+    Name = "Anti GuestBlock Animation",
+    CurrentValue = false,
+    Callback = function(v)
+        antiGuestBlockEnabled = v
     end
-end
+})
 
+MainTab:CreateInput({
+    Name = "TPWalk Speed (studs/sec)",
+    PlaceholderText = "Default: 4",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(input)
+        local n = tonumber(input)
+        tpWalkSpeed = (n and n > 0) and n or 4
+    end
+})
+
+MainTab:CreateToggle({
+    Name = "TPWalk",
+    CurrentValue = false,
+    Callback = function(state)
+        tpWalkEnabled = state
+    end
+})
+
+MainTab:CreateToggle({
+    Name = "Invisibility",
+    CurrentValue = false,
+    Callback = function(v)
+        invisibilityEnabled = v
+    end
+})
+
+MainTab:CreateToggle({
+    Name = "Inf staminaV1",
+    CurrentValue = false,
+    Callback = function(v)
+        infStaminaEnabled = v
+        local m = require(game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Shared"):WaitForChild("PlayerValues"))
+        if v then
+            m.MaxStamina = 100000
+            m.StaminaGain = 1000000
+        else
+            m.MaxStamina = 100
+            m.StaminaGain = 10
+        end
+    end
+})
+
+MainTab:CreateToggle({
+    Name = "ESP Killer",
+    CurrentValue = false,
+    Callback = function(v)
+        killerESPEnabled = v
+    end
+})
+
+MainTab:CreateToggle({
+    Name = "ESP Survivor",
+    CurrentValue = false,
+    Callback = function(v)
+        survivorESPEnabled = v
+    end
+})
+
+-- GUEST BLOCK BLOCKER
+RunService.RenderStepped:Connect(function()
+    if antiGuestBlockEnabled and player.Character then
+        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+        local animator = humanoid and humanoid:FindFirstChildWhichIsA("Animator")
+        if animator then
+            for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                if track.Animation and string.find(track.Animation.AnimationId, blockAnimationId) then
+                    track:Stop()
+                end
+            end
+        end
+    end
 end)
 
--- Invisibility Animation Loop local function playInvisibilityAnimation() local char = player.Character if not char then return end local humanoid = char:FindFirstChildOfClass("Humanoid") local animator = humanoid and humanoid:FindFirstChildWhichIsA("Animator") if not animator then return end
+-- INVIS LOOP
+RunService.Heartbeat:Connect(function()
+    if player.Character then
+        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+        local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+        if animator and invisibilityEnabled then
+            local anim = Instance.new("Animation")
+            anim.AnimationId = invisAnimId
+            local track = animator:LoadAnimation(anim)
+            track:Play(0.1, 1, 1)
+            task.delay(0.01, function() track:Stop() end)
+        elseif animator and not invisibilityEnabled then
+            for _, t in ipairs(animator:GetPlayingAnimationTracks()) do
+                t:Stop()
+            end
+        end
+    end
+end)
 
-for _, track in pairs(animator:GetPlayingAnimationTracks()) do
-    table.insert(savedTracks, {Track = track, TimePosition = track.TimePosition})
-    track:Stop()
-end
-
-local anim = Instance.new("Animation")
-anim.AnimationId = "rbxassetid://75804462760596"
-invisTrack = animator:LoadAnimation(anim)
-invisTrack:Play()
-
+-- TPWALK LOOP
 task.spawn(function()
-    while invisEnabled and invisTrack do
-        invisTrack:Play()
-        invisTrack.TimePosition = 0.001
-        task.wait(0.05)
+    while true do
+        task.wait(0.1)
+        if tpWalkEnabled then
+            local char = player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+            if hrp and humanoid then
+                local dir = humanoid.MoveDirection
+                if dir.Magnitude > 0 then
+                    hrp.CFrame = hrp.CFrame + (dir.Unit * (tpWalkSpeed * 0.1))
+                end
+            end
+        end
     end
 end)
 
+-- ESP LOOP
+local function updateKillerESP()
+    for _, model in pairs(workspace.Players.Killers:GetChildren()) do
+        if model:IsA("Model") and model:FindFirstChild("HumanoidRootPart") then
+            if not model:FindFirstChild("ESPHighlight") then
+                local h = Instance.new("Highlight")
+                h.Name = "ESPHighlight"
+                h.Adornee = model
+                h.FillColor = Color3.fromRGB(85, 0, 0)
+                h.OutlineColor = Color3.fromRGB(255, 0, 0)
+                h.FillTransparency = 0.5
+                h.OutlineTransparency = 0
+                h.Parent = model
+            end
+            if not model:FindFirstChild("ESPText") and model:FindFirstChild("Head") then
+                local bill = Instance.new("BillboardGui")
+                bill.Name = "ESPText"
+                bill.Adornee = model.Head
+                bill.Size = UDim2.new(0, 200, 0, 40)
+                bill.StudsOffset = Vector3.new(0, 2, 0)
+                bill.AlwaysOnTop = true
+                bill.Parent = model
+
+                local label = Instance.new("TextLabel")
+                label.Size = UDim2.new(1, 0, 1, 0)
+                label.BackgroundTransparency = 1
+                label.Text = model.Name
+                label.TextColor3 = Color3.fromRGB(255, 0, 0)
+                label.TextStrokeTransparency = 0.2
+                label.TextStrokeColor3 = Color3.fromRGB(85, 0, 0)
+                label.Font = Enum.Font.Antique
+                label.TextScaled = true
+                label.Parent = bill
+            end
+        end
+    end
 end
 
-local function stopInvisibilityAnimation() if invisTrack then invisTrack:Stop() invisTrack = nil end local char = player.Character if not char then return end local humanoid = char:FindFirstChildOfClass("Humanoid") local animator = humanoid and humanoid:FindFirstChildWhichIsA("Animator") if not animator then return end
+local function updateSurvivorESP()
+    for _, model in pairs(workspace.Players.Survivors:GetChildren()) do
+        if model:IsA("Model") and model:FindFirstChild("Head") then
+            if not model:FindFirstChild("ESPText") then
+                local bill = Instance.new("BillboardGui")
+                bill.Name = "ESPText"
+                bill.Adornee = model.Head
+                bill.Size = UDim2.new(0, 200, 0, 40)
+                bill.StudsOffset = Vector3.new(0, 2, 0)
+                bill.AlwaysOnTop = true
+                bill.Parent = model
 
-for _, saved in ipairs(savedTracks) do
-    local anim = Instance.new("Animation")
-    anim.AnimationId = saved.Track.Animation.AnimationId
-    local newTrack = animator:LoadAnimation(anim)
-    newTrack:Play()
-    newTrack.TimePosition = saved.TimePosition
+                local nameLabel = Instance.new("TextLabel")
+                nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+                nameLabel.BackgroundTransparency = 1
+                nameLabel.Text = model.Name
+                nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                nameLabel.TextStrokeTransparency = 0.5
+                nameLabel.TextStrokeColor3 = Color3.fromRGB(100, 100, 100)
+                nameLabel.Font = Enum.Font.Antique
+                nameLabel.TextScaled = true
+                nameLabel.Parent = bill
+
+                local healthLabel = Instance.new("TextLabel")
+                healthLabel.Size = UDim2.new(1, 0, 0.5, 0)
+                healthLabel.Position = UDim2.new(0, 0, 0.5, 0)
+                healthLabel.BackgroundTransparency = 1
+                healthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                healthLabel.TextStrokeTransparency = 0.5
+                healthLabel.TextStrokeColor3 = Color3.fromRGB(100, 100, 100)
+                healthLabel.Font = Enum.Font.Antique
+                healthLabel.TextScaled = true
+                healthLabel.Name = "HealthLabel"
+                healthLabel.Parent = bill
+            end
+
+            local hum = model:FindFirstChildOfClass("Humanoid")
+            if hum then
+                local label = model:FindFirstChild("ESPText") and model.ESPText:FindFirstChild("HealthLabel")
+                if label then
+                    label.Text = math.floor(hum.Health) .. " / " .. math.floor(hum.MaxHealth)
+                end
+            end
+
+            if not model:FindFirstChild("ESPHighlight") then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "ESPHighlight"
+                highlight.Adornee = model
+                highlight.FillColor = Color3.fromRGB(180, 180, 180)
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.FillTransparency = 0.5
+                highlight.OutlineTransparency = 0
+                highlight.Parent = model
+            end
+        end
+    end
 end
-savedTracks = {}
 
+while true do
+    task.wait(1)
+    if killerESPEnabled then updateKillerESP() end
+    if survivorESPEnabled then updateSurvivorESP() end
 end
-
--- ESP (Killer & Survivor) functions omitidos para focar no principal -- Adicione seu código de ESP anterior aqui
-
--- UI local Window = Rayfield:CreateWindow({ Name = "AxionHazen | Forsaken", LoadingTitle = "AxionHazen | Loading", LoadingSubtitle = "by kah.over", ConfigurationSaving = { Enabled = true, FolderName = nil, FileName = "KeyFile" }, Discord = { Enabled = false, Invite = "", RememberJoins = true }, KeySystem = true, KeySettings = { Title = "AxionHazen • KeySystem", Subtitle = "keysystem", Note = "discord copied to clipboard", FileName = "KeyFile", SaveKey = true, GrabKeyFromSite = false, Key = "AxionNotBad" } })
-
-local MainTab = Window:CreateTab("Main", 4483362458) local StaminaTab = Window:CreateTab("Stamina", 4483362458)
-
-MainTab:CreateToggle({ Name = "Anti GuestBlock Animation", CurrentValue = false, Callback = function(v) antiGuestBlockEnabled = v end })
-
-MainTab:CreateToggle({ Name = "Invisibility", CurrentValue = false, Callback = function(v) invisEnabled = v if v then playInvisibilityAnimation() else stopInvisibilityAnimation() end end })
-
-MainTab:CreateLabel("Note: If you notice that the tpwalk numbers don't stay, that's not a problem, the speed still works.")
-
-MainTab:CreateInput({ Name = "TPWalk Speed", PlaceholderText = "4", RemoveTextAfterFocusLost = false, Callback = function(v) local num = tonumber(v) tpwalkSpeed = (num and num > 0) and num or 4 end })
-
-MainTab:CreateToggle({ Name = "Enable TPWalk", CurrentValue = false, Callback = function(v) tpwalkEnabled = v end })
-
-StaminaTab:CreateButton({ Name = "Inf Stamina", Callback = function() local Sprinting = game:GetService("ReplicatedStorage").Systems.Character.Game.Sprinting local m = require(Sprinting) m.MaxStamina = 100000 m.StaminaGain = 100000000 end })
-
--- Anti GuestBlock Loop RunService.RenderStepped:Connect(function() if antiGuestBlockEnabled and player.Character then local humanoid = player.Character:FindFirstChildOfClass("Humanoid") local animator = humanoid and humanoid:FindFirstChildWhichIsA("Animator") if animator then for _, track in pairs(animator:GetPlayingAnimationTracks()) do if track.Animation and string.find(track.Animation.AnimationId, blockAnimationId) then track:Stop() end end end end end)
-
